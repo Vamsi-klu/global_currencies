@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive World Currency Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Application Structure Plan: The application uses a dashboard structure. It starts with high-level statistics for immediate context. Below this, a prominent search bar allows users to instantly filter the data. The core data is presented in a responsive card grid instead of a table, which is more mobile-friendly and visually appealing. A bar chart is included to offer a quick visual analysis of currency prevalence. This structure was chosen to transform the static reference list into an exploratory tool, prioritizing quick filtering and at-a-glance insights over simple data presentation. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Full list of countries and currencies. Goal: Inform/Organize. Viz: Responsive Card Grid. Interaction: Real-time filtering via search bar. Justification: A card grid is more scannable and responsive than a long table. Live search is the most efficient interaction for a large dataset. Method: HTML/Tailwind/Vanilla JS.
+        - Report Info: Currency distribution. Goal: Compare/Analyze. Viz: Horizontal Bar Chart. Interaction: Tooltips on hover show exact country counts. Justification: Visually highlights the most used currencies (like the Euro and USD), an insight not obvious from the raw list. Method: Chart.js on Canvas.
+        - Report Info: Summary stats. Goal: Inform. Viz: Key Performance Indicator (KPI) cards. Interaction: None. Justification: Provides immediate, high-level context of the dataset's scope. Method: HTML/Tailwind/Vanilla JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 mb-2">World Currency Explorer</h1>
+            <p class="text-lg text-stone-600">An interactive guide to global currencies.</p>
+        </header>
+
+        <section id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-10">
+             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm">
+                <h3 class="text-stone-500 font-semibold">Total Countries & Territories</h3>
+                <p id="total-countries" class="text-4xl font-bold text-stone-800 mt-2">0</p>
+            </div>
+             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm">
+                <h3 class="text-stone-500 font-semibold">Unique Currencies</h3>
+                <p id="unique-currencies" class="text-4xl font-bold text-stone-800 mt-2">0</p>
+            </div>
+             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm col-span-1 sm:col-span-2 lg:col-span-1">
+                <h3 class="text-stone-500 font-semibold">Most Used Currency</h3>
+                <p id="most-used-currency" class="text-4xl font-bold text-stone-800 mt-2">-</p>
+            </div>
+        </section>
+
+        <section id="currency-chart-section" class="mb-12 bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+            <h2 class="text-2xl font-bold text-stone-800 mb-1 text-center">Top 10 Most Common Currencies</h2>
+            <p class="text-stone-600 mb-6 text-center">This chart shows which currencies are officially used by the most countries and territories.</p>
+            <div class="chart-container">
+                <canvas id="currencyChart"></canvas>
+            </div>
+        </section>
+        
+        <section id="interactive-list">
+            <h2 class="text-2xl font-bold text-stone-800 mb-4 text-center">Currency Directory</h2>
+             <div class="w-full max-w-2xl mx-auto mb-8">
+                <p class="text-stone-600 mb-4 text-center">Use the search box below to filter the list by country, currency name, or currency code. The list will update in real-time as you type.</p>
+                <input type="search" id="search-box" placeholder="Search by Country, Currency, or Code..." class="w-full px-5 py-3 rounded-full border-2 border-stone-200 bg-white focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none transition-shadow">
+             </div>
+            <div id="currency-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const currencyData = [
+            { country: "Afghanistan", currencyName: "Afghan afghani", code: "AFN (؋)" },
+            { country: "Albania", currencyName: "Albanian lek", code: "ALL (L)" },
+            { country: "Algeria", currencyName: "Algerian dinar", code: "DZD (د.ج)" },
+            { country: "Andorra", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Angola", currencyName: "Angolan kwanza", code: "AOA (Kz)" },
+            { country: "Antigua and Barbuda", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Argentina", currencyName: "Argentine peso", code: "ARS ($)" },
+            { country: "Armenia", currencyName: "Armenian dram", code: "AMD (֏)" },
+            { country: "Australia", currencyName: "Australian dollar", code: "AUD ($)" },
+            { country: "Austria", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Azerbaijan", currencyName: "Azerbaijani manat", code: "AZN (₼)" },
+            { country: "Bahamas", currencyName: "Bahamian dollar", code: "BSD ($)" },
+            { country: "Bahrain", currencyName: "Bahraini dinar", code: "BHD (.د.ب)" },
+            { country: "Bangladesh", currencyName: "Bangladeshi taka", code: "BDT (৳)" },
+            { country: "Barbados", currencyName: "Barbadian dollar", code: "BBD ($)" },
+            { country: "Belarus", currencyName: "Belarusian ruble", code: "BYN (Br)" },
+            { country: "Belgium", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Belize", currencyName: "Belize dollar", code: "BZD ($)" },
+            { country: "Benin", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Bhutan", currencyName: "Bhutanese ngultrum", code: "BTN (Nu.)" },
+            { country: "Bolivia", currencyName: "Bolivian boliviano", code: "BOB (Bs.)" },
+            { country: "Bosnia and Herzegovina", currencyName: "Bosnia and Herzegovina convertible mark", code: "BAM (KM)" },
+            { country: "Botswana", currencyName: "Botswana pula", code: "BWP (P)" },
+            { country: "Brazil", currencyName: "Brazilian real", code: "BRL (R$)" },
+            { country: "Brunei", currencyName: "Brunei dollar", code: "BND ($)" },
+            { country: "Bulgaria", currencyName: "Bulgarian lev", code: "BGN (лв)" },
+            { country: "Burkina Faso", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Burundi", currencyName: "Burundian franc", code: "BIF (Fr)" },
+            { country: "Cambodia", currencyName: "Cambodian riel", code: "KHR (៛)" },
+            { country: "Cameroon", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Canada", currencyName: "Canadian dollar", code: "CAD ($)" },
+            { country: "Cape Verde", currencyName: "Cape Verdean escudo", code: "CVE ($)" },
+            { country: "Central African Republic", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Chad", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Chile", currencyName: "Chilean peso", code: "CLP ($)" },
+            { country: "China", currencyName: "Chinese yuan (Renminbi)", code: "CNY (¥)" },
+            { country: "Colombia", currencyName: "Colombian peso", code: "COP ($)" },
+            { country: "Comoros", currencyName: "Comorian franc", code: "KMF (Fr)" },
+            { country: "Congo, Dem. Rep. of", currencyName: "Congolese franc", code: "CDF (Fr)" },
+            { country: "Congo, Rep. of the", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Costa Rica", currencyName: "Costa Rican colón", code: "CRC (₡)" },
+            { country: "Côte d'Ivoire", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Croatia", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Cuba", currencyName: "Cuban peso", code: "CUP ($)" },
+            { country: "Cyprus", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Czech Republic", currencyName: "Czech koruna", code: "CZK (Kč)" },
+            { country: "Denmark", currencyName: "Danish krone", code: "DKK (kr)" },
+            { country: "Djibouti", currencyName: "Djiboutian franc", code: "DJF (Fr)" },
+            { country: "Dominica", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Dominican Republic", currencyName: "Dominican peso", code: "DOP ($)" },
+            { country: "Ecuador", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Egypt", currencyName: "Egyptian pound", code: "EGP (£)" },
+            { country: "El Salvador", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Equatorial Guinea", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Eritrea", currencyName: "Eritrean nakfa", code: "ERN (Nfk)" },
+            { country: "Estonia", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Eswatini (Swaziland)", currencyName: "Swazi lilangeni", code: "SZL (L)" },
+            { country: "Ethiopia", currencyName: "Ethiopian birr", code: "ETB (Br)" },
+            { country: "Fiji", currencyName: "Fijian dollar", code: "FJD ($)" },
+            { country: "Finland", currencyName: "Euro", code: "EUR (€)" },
+            { country: "France", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Gabon", currencyName: "Central African CFA franc", code: "XAF (Fr)" },
+            { country: "Gambia", currencyName: "Gambian dalasi", code: "GMD (D)" },
+            { country: "Georgia", currencyName: "Georgian lari", code: "GEL (₾)" },
+            { country: "Germany", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Ghana", currencyName: "Ghanaian cedi", code: "GHS (₵)" },
+            { country: "Greece", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Grenada", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Guatemala", currencyName: "Guatemalan quetzal", code: "GTQ (Q)" },
+            { country: "Guinea", currencyName: "Guinean franc", code: "GNF (Fr)" },
+            { country: "Guinea-Bissau", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Guyana", currencyName: "Guyanese dollar", code: "GYD ($)" },
+            { country: "Haiti", currencyName: "Haitian gourde", code: "HTG (G)" },
+            { country: "Honduras", currencyName: "Honduran lempira", code: "HNL (L)" },
+            { country: "Hong Kong", currencyName: "Hong Kong dollar", code: "HKD ($)" },
+            { country: "Hungary", currencyName: "Hungarian forint", code: "HUF (Ft)" },
+            { country: "Iceland", currencyName: "Icelandic króna", code: "ISK (kr)" },
+            { country: "India", currencyName: "Indian rupee", code: "INR (₹)" },
+            { country: "Indonesia", currencyName: "Indonesian rupiah", code: "IDR (Rp)" },
+            { country: "Iran", currencyName: "Iranian rial", code: "IRR (﷼)" },
+            { country: "Iraq", currencyName: "Iraqi dinar", code: "IQD (ع.د)" },
+            { country: "Ireland", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Israel", currencyName: "Israeli new shekel", code: "ILS (₪)" },
+            { country: "Italy", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Jamaica", currencyName: "Jamaican dollar", code: "JMD ($)" },
+            { country: "Japan", currencyName: "Japanese yen", code: "JPY (¥)" },
+            { country: "Jordan", currencyName: "Jordanian dinar", code: "JOD (د.ا)" },
+            { country: "Kazakhstan", currencyName: "Kazakhstani tenge", code: "KZT (₸)" },
+            { country: "Kenya", currencyName: "Kenyan shilling", code: "KES (Sh)" },
+            { country: "Kiribati", currencyName: "Australian dollar", code: "AUD ($)" },
+            { country: "Kuwait", currencyName: "Kuwaiti dinar", code: "KWD (د.ك)" },
+            { country: "Kyrgyzstan", currencyName: "Kyrgyzstani som", code: "KGS (с)" },
+            { country: "Laos", currencyName: "Lao kip", code: "LAK (₭)" },
+            { country: "Latvia", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Lebanon", currencyName: "Lebanese pound", code: "LBP (ل.ل)" },
+            { country: "Lesotho", currencyName: "Lesotho loti", code: "LSL (L)" },
+            { country: "Liberia", currencyName: "Liberian dollar", code: "LRD ($)" },
+            { country: "Libya", currencyName: "Libyan dinar", code: "LYD (ل.د)" },
+            { country: "Liechtenstein", currencyName: "Swiss franc", code: "CHF (Fr)" },
+            { country: "Lithuania", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Luxembourg", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Madagascar", currencyName: "Malagasy ariary", code: "MGA (Ar)" },
+            { country: "Malawi", currencyName: "Malawian kwacha", code: "MWK (MK)" },
+            { country: "Malaysia", currencyName: "Malaysian ringgit", code: "MYR (RM)" },
+            { country: "Maldives", currencyName: "Maldivian rufiyaa", code: "MVR (.ރ)" },
+            { country: "Mali", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Malta", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Mauritania", currencyName: "Mauritanian ouguiya", code: "MRU (UM)" },
+            { country: "Mauritius", currencyName: "Mauritian rupee", code: "MUR (₨)" },
+            { country: "Mexico", currencyName: "Mexican peso", code: "MXN ($)" },
+            { country: "Micronesia", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Moldova", currencyName: "Moldovan leu", code: "MDL (L)" },
+            { country: "Monaco", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Mongolia", currencyName: "Mongolian tögrög", code: "MNT (₮)" },
+            { country: "Montenegro", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Morocco", currencyName: "Moroccan dirham", code: "MAD (د.م.)" },
+            { country: "Mozambique", currencyName: "Mozambican metical", code: "MZN (MT)" },
+            { country: "Myanmar (Burma)", currencyName: "Burmese kyat", code: "MMK (K)" },
+            { country: "Namibia", currencyName: "Namibian dollar", code: "NAD ($)" },
+            { country: "Nauru", currencyName: "Australian dollar", code: "AUD ($)" },
+            { country: "Nepal", currencyName: "Nepalese rupee", code: "NPR (₨)" },
+            { country: "Netherlands", currencyName: "Euro", code: "EUR (€)" },
+            { country: "New Zealand", currencyName: "New Zealand dollar", code: "NZD ($)" },
+            { country: "Nicaragua", currencyName: "Nicaraguan córdoba", code: "NIO (C$)" },
+            { country: "Niger", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Nigeria", currencyName: "Nigerian naira", code: "NGN (₦)" },
+            { country: "North Korea", currencyName: "North Korean won", code: "KPW (₩)" },
+            { country: "North Macedonia", currencyName: "Macedonian denar", code: "MKD (ден)" },
+            { country: "Norway", currencyName: "Norwegian krone", code: "NOK (kr)" },
+            { country: "Oman", currencyName: "Omani rial", code: "OMR (ر.ع.)" },
+            { country: "Pakistan", currencyName: "Pakistani rupee", code: "PKR (₨)" },
+            { country: "Palau", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Panama", currencyName: "Panamanian balboa / United States dollar", code: "PAB (B/.) / USD ($)" },
+            { country: "Papua New Guinea", currencyName: "Papua New Guinean kina", code: "PGK (K)" },
+            { country: "Paraguay", currencyName: "Paraguayan guaraní", code: "PYG (₲)" },
+            { country: "Peru", currencyName: "Peruvian sol", code: "PEN (S/)" },
+            { country: "Philippines", currencyName: "Philippine peso", code: "PHP (₱)" },
+            { country: "Poland", currencyName: "Polish złoty", code: "PLN (zł)" },
+            { country: "Portugal", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Qatar", currencyName: "Qatari riyal", code: "QAR (ر.ق)" },
+            { country: "Romania", currencyName: "Romanian leu", code: "RON (lei)" },
+            { country: "Russia", currencyName: "Russian ruble", code: "RUB (₽)" },
+            { country: "Rwanda", currencyName: "Rwandan franc", code: "RWF (Fr)" },
+            { country: "Saint Kitts and Nevis", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Saint Lucia", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Saint Vincent and the Grenadines", currencyName: "East Caribbean dollar", code: "XCD ($)" },
+            { country: "Samoa", currencyName: "Samoan tālā", code: "WST (T)" },
+            { country: "San Marino", currencyName: "Euro", code: "EUR (€)" },
+            { country: "São Tomé and Príncipe", currencyName: "São Tomé and Príncipe dobra", code: "STN (Db)" },
+            { country: "Saudi Arabia", currencyName: "Saudi riyal", code: "SAR (ر.س)" },
+            { country: "Senegal", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Serbia", currencyName: "Serbian dinar", code: "RSD (дин.)" },
+            { country: "Seychelles", currencyName: "Seychellois rupee", code: "SCR (₨)" },
+            { country: "Sierra Leone", currencyName: "Sierra Leonean leone", code: "SLL (Le)" },
+            { country: "Singapore", currencyName: "Singapore dollar", code: "SGD ($)" },
+            { country: "Slovakia", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Slovenia", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Solomon Islands", currencyName: "Solomon Islands dollar", code: "SBD ($)" },
+            { country: "Somalia", currencyName: "Somali shilling", code: "SOS (Sh)" },
+            { country: "South Africa", currencyName: "South African rand", code: "ZAR (R)" },
+            { country: "South Korea", currencyName: "South Korean won", code: "KRW (₩)" },
+            { country: "South Sudan", currencyName: "South Sudanese pound", code: "SSP (£)" },
+            { country: "Spain", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Sri Lanka", currencyName: "Sri Lankan rupee", code: "LKR (Rs)" },
+            { country: "Sudan", currencyName: "Sudanese pound", code: "SDG (ج.س.)" },
+            { country: "Suriname", currencyName: "Surinamese dollar", code: "SRD ($)" },
+            { country: "Sweden", currencyName: "Swedish krona", code: "SEK (kr)" },
+            { country: "Switzerland", currencyName: "Swiss franc", code: "CHF (Fr)" },
+            { country: "Syria", currencyName: "Syrian pound", code: "SYP (£)" },
+            { country: "Taiwan", currencyName: "New Taiwan dollar", code: "TWD ($)" },
+            { country: "Tajikistan", currencyName: "Tajikistani somoni", code: "TJS (ЅМ)" },
+            { country: "Tanzania", currencyName: "Tanzanian shilling", code: "TZS (Sh)" },
+            { country: "Thailand", currencyName: "Thai baht", code: "THB (฿)" },
+            { country: "Timor-Leste", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Togo", currencyName: "West African CFA franc", code: "XOF (Fr)" },
+            { country: "Tonga", currencyName: "Tongan paʻanga", code: "TOP (T$)" },
+            { country: "Trinidad and Tobago", currencyName: "Trinidad and Tobago dollar", code: "TTD ($)" },
+            { country: "Tunisia", currencyName: "Tunisian dinar", code: "TND (د.ت)" },
+            { country: "Turkey", currencyName: "Turkish lira", code: "TRY (₺)" },
+            { country: "Turkmenistan", currencyName: "Turkmenistani manat", code: "TMT (m)" },
+            { country: "Tuvalu", currencyName: "Australian dollar", code: "AUD ($)" },
+            { country: "Uganda", currencyName: "Ugandan shilling", code: "UGX (Sh)" },
+            { country: "Ukraine", currencyName: "Ukrainian hryvnia", code: "UAH (₴)" },
+            { country: "United Arab Emirates", currencyName: "UAE dirham", code: "AED (د.إ)" },
+            { country: "United Kingdom", currencyName: "Pound sterling", code: "GBP (£)" },
+            { country: "United States", currencyName: "United States dollar", code: "USD ($)" },
+            { country: "Uruguay", currencyName: "Uruguayan peso", code: "UYU ($)" },
+            { country: "Uzbekistan", currencyName: "Uzbekistani soʻm", code: "UZS (so'm)" },
+            { country: "Vanuatu", currencyName: "Vanuatu vatu", code: "VUV (Vt)" },
+            { country: "Vatican City", currencyName: "Euro", code: "EUR (€)" },
+            { country: "Venezuela", currencyName: "Venezuelan bolívar soberano", code: "VES (Bs.S)" },
+            { country: "Vietnam", currencyName: "Vietnamese đồng", code: "VND (₫)" },
+            { country: "Yemen", currencyName: "Yemeni rial", code: "YER (﷼)" },
+            { country: "Zambia", currencyName: "Zambian kwacha", code: "ZMW (ZK)" },
+            { country: "Zimbabwe", currencyName: "Zimbabwean dollar", code: "ZWL ($)" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.getElementById('currency-grid');
+            const searchBox = document.getElementById('search-box');
+
+            function renderCards(data) {
+                grid.innerHTML = '';
+                if (data.length === 0) {
+                    grid.innerHTML = `<p class="text-stone-500 col-span-full text-center">No results found.</p>`;
+                    return;
+                }
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300';
+                    card.innerHTML = `
+                        <h3 class="font-bold text-stone-800 text-lg">${item.country}</h3>
+                        <p class="text-stone-600">${item.currencyName}</p>
+                        <p class="text-sm font-mono bg-stone-100 text-stone-700 px-2 py-1 rounded-md mt-2 inline-block">${item.code}</p>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+            
+            function filterData() {
+                const query = searchBox.value.toLowerCase();
+                const filteredData = currencyData.filter(item => 
+                    item.country.toLowerCase().includes(query) ||
+                    item.currencyName.toLowerCase().includes(query) ||
+                    item.code.toLowerCase().includes(query)
+                );
+                renderCards(filteredData);
+            }
+
+            function updateStats() {
+                document.getElementById('total-countries').textContent = currencyData.length;
+                const uniqueCurrencies = new Set(currencyData.map(c => c.currencyName));
+                document.getElementById('unique-currencies').textContent = uniqueCurrencies.size;
+                
+                const currencyCounts = getCurrencyCounts();
+                const mostUsed = currencyCounts[0];
+                if(mostUsed) {
+                    document.getElementById('most-used-currency').textContent = `${mostUsed.name}`;
+                }
+            }
+            
+            function getCurrencyCounts() {
+                const counts = currencyData.reduce((acc, curr) => {
+                    acc[curr.currencyName] = (acc[curr.currencyName] || 0) + 1;
+                    return acc;
+                }, {});
+
+                return Object.entries(counts)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count);
+            }
+
+            function renderChart() {
+                const topCurrencies = getCurrencyCounts().slice(0, 10).reverse();
+                
+                const ctx = document.getElementById('currencyChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: topCurrencies.map(c => c.name),
+                        datasets: [{
+                            label: '# of Countries/Territories',
+                            data: topCurrencies.map(c => c.count),
+                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.x !== null) {
+                                            label += context.parsed.x + ' locations';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                           x: {
+                                beginAtZero: true,
+                                grid: {
+                                  color: '#F0EFEF'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                  display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            searchBox.addEventListener('input', filterData);
+            
+            renderCards(currencyData);
+            updateStats();
+            renderChart();
+        });
+    </script>
+</body>
+</html>
+
