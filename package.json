@@ -1,0 +1,25 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A beautiful, interactive web application that provides comprehensive information about currencies used worldwide. Explore currencies from 197 countries and territories with real-time search, visual analytics, and responsive design.",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vamsi-klu/global_currencies.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Vamsi-klu/global_currencies/issues"
+  },
+  "homepage": "https://github.com/Vamsi-klu/global_currencies#readme",
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
+  }
+}
