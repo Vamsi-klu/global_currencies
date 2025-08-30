@@ -1,86 +1,100 @@
 # Interactive World Currency Explorer
 
-A beautiful, interactive web application that provides comprehensive information about currencies used worldwide. Explore currencies from 197 countries and territories with real-time search, visual analytics, and responsive design.
+A modern, interactive web app to explore global currencies. It now includes an AI Insights panel that answers any question with a minimum of 10 well‑explained bullet points, a refreshed Tailwind aesthetic, and an optional local proxy server for secure OpenAI access.
 
-## Features
+## What’s New in This Update
 
-- 📊 **Interactive Dashboard** - View key statistics about global currencies
-- 🔍 **Real-time Search** - Filter by country, currency name, or currency code
-- 📈 **Visual Analytics** - Bar chart showing the most commonly used currencies
-- 📱 **Responsive Design** - Works perfectly on desktop and mobile devices
-- 🎨 **Modern UI** - Clean, professional design with smooth animations
+- AI insights: Ask questions and get 10+ structured, explanatory bullets.
+- Tailwind redesign: Aurora/blossom/mint palette, dark mode, glow effects.
+- Modular structure: Separate HTML, CSS, and JS with clear responsibilities.
+- Local server: Express server that serves the UI and proxies OpenAI calls.
+- Demo mode: Generate example bullets without any API key.
 
-## Screenshots
+## Quick Start
 
-The application features:
-- Statistics cards showing total countries, unique currencies, and most used currency
-- Interactive bar chart highlighting currency distribution
-- Searchable grid of currency cards with hover effects
-- Real-time filtering as you type
+Choose one of the two flows below.
 
-## Usage
+1) Instant demo (no server)
+- Open `curr/index.html` directly in a browser.
+- Click “Demo” to render 10+ sample points.
+- To use real AI without the server, open “Settings” and paste your OpenAI API key (stored in your browser’s localStorage). For production, prefer the server proxy below.
 
-### Running Locally
+2) Full demo with local server (recommended)
+- Prerequisites: Node 18+.
+- Setup and run:
+  ```bash
+  cd server
+  cp .env.example .env
+  # edit .env and set OPENAI_API_KEY
+  npm install
+  npm start
+  ```
+- Open http://localhost:8787/
+- Health check: http://localhost:8787/api/health should return `{ "ok": true }`.
 
-1. Clone this repository:
-   ```bash
-   git clone <repository-url>
-   cd global_currencies
-   ```
+## Usage Guide
 
-2. Start a local HTTP server:
-   ```bash
-   # Using Python 3
-   cd curr
-   python3 -m http.server 8000
-   
-   # Or using Node.js (if you have it installed)
-   npx http-server curr -p 8000
-   ```
+- Theme: Use the “Toggle Theme” button to switch light/dark (persisted).
+- AI Insights:
+  - Type a question, set “Min bullets” (>= 10), choose Style and Detail.
+  - Click “Generate Insights” for AI output.
+  - Actions: Stop, Clear, Copy (Markdown), Download (JSON), Speak (TTS).
+- Currency explorer:
+  - Real‑time search across country, currency, and code.
+  - Stats cards show total countries, unique currencies, and most‑used currency.
+  - Chart displays the top 10 most common currencies.
 
-3. Open your browser and navigate to:
-   ```
-   http://localhost:8000/c.html
-   ```
-
-### File Structure
+## Project Structure
 
 ```
 global_currencies/
-├── README.md           # Project documentation
-└── curr/
-    └── c.html         # Main application file
+├── README.md
+├── curr/
+│   ├── index.html           # New modular UI (AI + explorer)
+│   ├── c.html               # Original single‑file page (legacy)
+│   ├── css/
+│   │   └── theme.css        # Small custom CSS (chart sizing, font)
+│   └── js/
+│       ├── tw-config.js     # Tailwind CDN config (theme + dark mode)
+│       ├── data.js          # Currency dataset
+│       ├── app.js           # Theme, stats, chart, search, cards
+│       └── ai.js            # AI interactions, actions, settings, demo
+└── server/
+    ├── server.js            # Express static server + /api/chat proxy
+    ├── package.json         # Server dependencies and scripts
+    └── .env.example         # Env template (OPENAI_API_KEY, PORT, STATIC_DIR)
 ```
+
+## Configuration
+
+- `OPENAI_API_KEY`: Set in `server/.env` for the proxy, or in the UI “Settings” (localStorage) when not using the server.
+- `PORT`: Defaults to `8787`.
+- `STATIC_DIR`: Defaults to `../curr` from the server directory.
 
 ## Technology Stack
 
-- **HTML5** - Semantic markup structure
-- **Tailwind CSS** - Utility-first CSS framework via CDN
-- **Chart.js** - Interactive charts and data visualization
-- **Vanilla JavaScript** - No frameworks, pure JS for functionality
-- **Google Fonts** - Inter font family for typography
+- Tailwind CSS (CDN config via `curr/js/tw-config.js`)
+- Chart.js for charts
+- Vanilla JavaScript (no framework)
+- Express server (proxying OpenAI)
 
-## Data
+## Logging & Troubleshooting
 
-The application includes comprehensive currency data for 197 countries and territories, featuring:
-- Country/territory names
-- Official currency names
-- Currency codes with symbols
-- Real-time statistics and analytics
+- Server logs:
+  - Startup: `server/server.js` logs the port and static dir.
+  - Errors: `server/server.js` logs failures with `console.error` and returns JSON errors.
+- UI status messages:
+  - `curr/js/ai.js` uses `flashStatus` and `setLoading` to show success or failure.
+- Common issues:
+  - “localhost refused to connect”: Start the server (`npm start`) and open `http://localhost:8787/`.
+  - 401/429 errors from OpenAI: Check `OPENAI_API_KEY`, usage limits, or model name.
+  - No API key and no server: Use the “Demo” button.
 
-## Browser Compatibility
+## Notes
 
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-
-Note: The application uses modern JavaScript features and CDN resources, so an internet connection is required for external dependencies.
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
+- Security: Keep your API key server‑side for production (via the proxy). The client‑side key option is for local testing only.
+- Compatibility: Modern browsers (Chrome/Edge/Safari/Firefox). Tailwind and Chart.js are loaded via CDN.
 
 ## License
 
-This project is open source and available under the MIT License.
+MIT

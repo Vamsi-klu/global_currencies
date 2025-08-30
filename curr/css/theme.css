@@ -1,0 +1,14 @@
+body { font-family: 'Inter', sans-serif; }
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 400px;
+  max-height: 50vh;
+}
+@media (min-width: 768px) {
+  .chart-container { height: 500px; }
+}
+

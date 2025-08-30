@@ -4,12 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive World Currency Explorer</title>
+    <script>
+        // Theme load: apply saved preference ASAP
+        const __root = document.documentElement;
+        const __savedTheme = localStorage.getItem('theme');
+        if (__savedTheme === 'dark') __root.classList.add('dark');
+      // Tailwind CDN config: vibrant aurora palette + dark mode
+      tailwind = { config: { darkMode: 'class', theme: { extend: {
+        colors: {
+          aurora: {
+            50: '#f5f7ff', 100: '#eef2ff', 200: '#e0e7ff', 300: '#c7d2fe', 400: '#a5b4fc',
+            500: '#818cf8', 600: '#6366f1', 700: '#4f46e5', 800: '#4338ca', 900: '#3730a3'
+          },
+          blossom: {
+            50: '#fff0f7', 100: '#ffe4f1', 200: '#ffd0e6', 300: '#ffb3d7', 400: '#ff8ec2',
+            500: '#f472b6', 600: '#ec4899', 700: '#db2777', 800: '#be185d', 900: '#9d174d'
+          },
+          mint: {
+            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399',
+            500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b'
+          }
+        },
+        boxShadow: { glow: '0 10px 25px rgba(99,102,241,0.25), 0 4px 15px rgba(236,72,153,0.2)' }
+      } } };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Warm Neutral Harmony -->
+    <!-- Updated Palette: Aurora gradient (indigo → fuchsia) with mint accents -->
     <!-- Application Structure Plan: The application uses a dashboard structure. It starts with high-level statistics for immediate context. Below this, a prominent search bar allows users to instantly filter the data. The core data is presented in a responsive card grid instead of a table, which is more mobile-friendly and visually appealing. A bar chart is included to offer a quick visual analysis of currency prevalence. This structure was chosen to transform the static reference list into an exploratory tool, prioritizing quick filtering and at-a-glance insights over simple data presentation. -->
     <!-- Visualization & Content Choices: 
         - Report Info: Full list of countries and currencies. Goal: Inform/Organize. Viz: Responsive Card Grid. Interaction: Real-time filtering via search bar. Justification: A card grid is more scannable and responsive than a long table. Live search is the most efficient interaction for a large dataset. Method: HTML/Tailwind/Vanilla JS.
@@ -18,11 +42,7 @@
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #FDFBF8;
-            color: #4A4A4A;
-        }
+        body { font-family: 'Inter', sans-serif; }
         .chart-container {
             position: relative;
             width: 100%;
@@ -39,43 +59,108 @@
         }
     </style>
 </head>
-<body class="antialiased">
+<body class="antialiased bg-gradient-to-br from-aurora-50 via-white to-blossom-50 dark:from-slate-950 dark:via-slate-900 dark:to-aurora-900 text-slate-800 dark:text-slate-100">
 
     <div class="container mx-auto px-4 py-8 md:py-12">
 
         <header class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 mb-2">World Currency Explorer</h1>
-            <p class="text-lg text-stone-600">An interactive guide to global currencies.</p>
+            <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/70 dark:bg-white/10 border border-aurora-200/60 dark:border-white/10 shadow-glow">
+                <button id="themeToggle" class="text-sm font-semibold px-3 py-1 rounded-full bg-aurora-100 text-aurora-800 dark:bg-aurora-600/40 dark:text-aurora-100 hover:scale-[1.03] transition">Toggle Theme</button>
+                <button id="settingsOpen" class="text-sm font-semibold px-3 py-1 rounded-full bg-blossom-100 text-blossom-800 dark:bg-blossom-600/40 dark:text-blossom-100 hover:scale-[1.03] transition">Settings</button>
+            </div>
+            <h1 class="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-aurora-600 via-blossom-600 to-mint-500">World Currency Explorer</h1>
+            <p class="mt-2 text-lg text-slate-600 dark:text-slate-300">An interactive guide to global currencies with AI insights.</p>
         </header>
 
-        <section id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-10">
-             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm">
-                <h3 class="text-stone-500 font-semibold">Total Countries & Territories</h3>
-                <p id="total-countries" class="text-4xl font-bold text-stone-800 mt-2">0</p>
-            </div>
-             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm">
-                <h3 class="text-stone-500 font-semibold">Unique Currencies</h3>
-                <p id="unique-currencies" class="text-4xl font-bold text-stone-800 mt-2">0</p>
-            </div>
-             <div class="bg-white/60 p-6 rounded-xl border border-stone-200 shadow-sm col-span-1 sm:col-span-2 lg:col-span-1">
-                <h3 class="text-stone-500 font-semibold">Most Used Currency</h3>
-                <p id="most-used-currency" class="text-4xl font-bold text-stone-800 mt-2">-</p>
+        <!-- AI Insights Section -->
+        <section id="ai-section" class="mb-10">
+            <div class="relative overflow-hidden rounded-2xl border border-aurora-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 shadow-glow">
+                <div class="absolute inset-0 bg-gradient-to-br from-aurora-100/40 via-blossom-100/20 to-mint-100/30 dark:from-aurora-600/20 dark:via-blossom-600/10 dark:to-mint-600/10 pointer-events-none"></div>
+                <div class="relative p-6 md:p-8">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-bold">AI Currency Insights</h2>
+                            <p class="mt-1 text-slate-600 dark:text-slate-300">Ask any question and get at least 10 clear, well-explained bullet points tailored to your query.</p>
+                        </div>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Uses your API key</span>
+                        </div>
+                    </div>
+                    <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="lg:col-span-2">
+                            <label for="ai-question" class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Your Question</label>
+                            <textarea id="ai-question" rows="4" placeholder="e.g., Compare the pros and cons of adopting the Euro for a small economy, or Explain factors that influence exchange rate volatility, or How is the USD used outside the U.S.?" class="w-full rounded-xl border-2 border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 backdrop-blur px-4 py-3 focus:outline-none focus:ring-4 focus:ring-aurora-300/50 dark:focus:ring-aurora-500/40"></textarea>
+                            <div class="mt-3 flex flex-wrap items-center gap-3">
+                                <label class="text-sm text-slate-600 dark:text-slate-300">Min bullets</label>
+                                <input id="min-bullets" type="number" min="10" value="10" class="w-20 rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-2 py-1">
+                                <label class="text-sm text-slate-600 dark:text-slate-300">Detail</label>
+                                <input id="detail-range" type="range" min="1" max="3" value="2" class="accent-aurora-600">
+                                <select id="style-select" class="rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-2 py-1">
+                                    <option value="concise" selected>Concise</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="in-depth">In-depth</option>
+                                </select>
+                            </div>
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <button id="ask-btn" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-aurora-600 to-blossom-600 text-white font-semibold px-4 py-2 shadow-glow hover:opacity-95 active:scale-[0.99] transition">
+                                    <span>Generate Insights</span>
+                                </button>
+                                <button id="stop-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Stop</button>
+                                <button id="clear-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Clear</button>
+                                <button id="copy-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Copy</button>
+                                <button id="download-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Download</button>
+                                <button id="speak-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Speak</button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-1">
+                            <div class="rounded-xl border border-aurora-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4">
+                                <h3 class="font-semibold">Tips</h3>
+                                <ul class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300 list-disc list-inside">
+                                    <li>Ask “why” and “how” for deeper factors.</li>
+                                    <li>Use “compare X vs Y” for trade-offs.</li>
+                                    <li>Set detail to “In-depth” for richer points.</li>
+                                    <li>Minimum bullets are enforced (≥10).</li>
+                                </ul>
+                                <div class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                                    Your API key is stored locally (browser). For production, proxy requests through a server.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ai-status" class="mt-4 text-sm text-slate-600 dark:text-slate-300 hidden"></div>
+                    <div id="ai-output" class="mt-6 rounded-xl border border-aurora-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4"></div>
+                </div>
             </div>
         </section>
 
-        <section id="currency-chart-section" class="mb-12 bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
-            <h2 class="text-2xl font-bold text-stone-800 mb-1 text-center">Top 10 Most Common Currencies</h2>
-            <p class="text-stone-600 mb-6 text-center">This chart shows which currencies are officially used by the most countries and territories.</p>
+        <section id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-10">
+             <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+                <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Total Countries & Territories</h3>
+                <p id="total-countries" class="text-4xl font-extrabold text-aurora-700 dark:text-aurora-300 mt-2">0</p>
+            </div>
+             <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+                <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Unique Currencies</h3>
+                <p id="unique-currencies" class="text-4xl font-extrabold text-blossom-700 dark:text-blossom-300 mt-2">0</p>
+            </div>
+             <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow col-span-1 sm:col-span-2 lg:col-span-1">
+                <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Most Used Currency</h3>
+                <p id="most-used-currency" class="text-4xl font-extrabold text-mint-700 dark:text-mint-300 mt-2">-</p>
+            </div>
+        </section>
+
+        <section id="currency-chart-section" class="mb-12 bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 text-center">Top 10 Most Common Currencies</h2>
+            <p class="text-slate-600 dark:text-slate-300 mb-6 text-center">This chart shows which currencies are officially used by the most countries and territories.</p>
             <div class="chart-container">
                 <canvas id="currencyChart"></canvas>
             </div>
         </section>
         
         <section id="interactive-list">
-            <h2 class="text-2xl font-bold text-stone-800 mb-4 text-center">Currency Directory</h2>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 text-center">Currency Directory</h2>
              <div class="w-full max-w-2xl mx-auto mb-8">
-                <p class="text-stone-600 mb-4 text-center">Use the search box below to filter the list by country, currency name, or currency code. The list will update in real-time as you type.</p>
-                <input type="search" id="search-box" placeholder="Search by Country, Currency, or Code..." class="w-full px-5 py-3 rounded-full border-2 border-stone-200 bg-white focus:ring-2 focus:ring-orange-300 focus:border-orange-400 outline-none transition-shadow">
+                <p class="text-slate-600 dark:text-slate-300 mb-4 text-center">Use the search box below to filter the list by country, currency name, or currency code. The list updates in real-time.</p>
+                <input type="search" id="search-box" placeholder="Search by Country, Currency, or Code..." class="w-full px-5 py-3 rounded-full border-2 border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 backdrop-blur focus:ring-4 focus:ring-aurora-300/50 dark:focus:ring-aurora-500/40 outline-none transition">
              </div>
             <div id="currency-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
             </div>
@@ -289,16 +374,16 @@
             function renderCards(data) {
                 grid.innerHTML = '';
                 if (data.length === 0) {
-                    grid.innerHTML = `<p class="text-stone-500 col-span-full text-center">No results found.</p>`;
+                    grid.innerHTML = `<p class="text-slate-500 col-span-full text-center">No results found.</p>`;
                     return;
                 }
                 data.forEach(item => {
                     const card = document.createElement('div');
-                    card.className = 'bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300';
+                    card.className = 'bg-white/80 dark:bg-white/5 backdrop-blur p-4 rounded-lg border border-aurora-200/70 dark:border-white/10 shadow hover:shadow-glow hover:-translate-y-1 transition-all duration-300';
                     card.innerHTML = `
-                        <h3 class="font-bold text-stone-800 text-lg">${item.country}</h3>
-                        <p class="text-stone-600">${item.currencyName}</p>
-                        <p class="text-sm font-mono bg-stone-100 text-stone-700 px-2 py-1 rounded-md mt-2 inline-block">${item.code}</p>
+                        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-lg">${item.country}</h3>
+                        <p class="text-slate-600 dark:text-slate-300">${item.currencyName}</p>
+                        <p class="text-sm font-mono bg-aurora-50 dark:bg-slate-800 text-aurora-800 dark:text-aurora-200 px-2 py-1 rounded-md mt-2 inline-block">${item.code}</p>
                     `;
                     grid.appendChild(card);
                 });
@@ -348,8 +433,8 @@
                         datasets: [{
                             label: '# of Countries/Territories',
                             data: topCurrencies.map(c => c.count),
-                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
-                            borderColor: 'rgba(249, 115, 22, 1)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: 'rgba(99, 102, 241, 1)',
                             borderWidth: 1
                         }]
                     },
@@ -380,7 +465,7 @@
                            x: {
                                 beginAtZero: true,
                                 grid: {
-                                  color: '#F0EFEF'
+                                  color: 'rgba(148, 163, 184, 0.2)'
                                 }
                             },
                             y: {
@@ -398,8 +483,186 @@
             renderCards(currencyData);
             updateStats();
             renderChart();
+
+            // ---------- Theme Toggle ----------
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle?.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // ---------- AI Enhancements ----------
+            const askBtn = document.getElementById('ask-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const speakBtn = document.getElementById('speak-btn');
+            const aiQuestion = document.getElementById('ai-question');
+            const aiOutput = document.getElementById('ai-output');
+            const aiStatus = document.getElementById('ai-status');
+            const minBulletsEl = document.getElementById('min-bullets');
+            const styleSelect = document.getElementById('style-select');
+            const detailRange = document.getElementById('detail-range');
+
+            const settingsOpen = document.getElementById('settingsOpen');
+            const settingsModal = createSettingsModal();
+            document.body.appendChild(settingsModal.container);
+            settingsOpen?.addEventListener('click', settingsModal.open);
+
+            let aborter = null;
+
+            askBtn?.addEventListener('click', async () => {
+                const q = (aiQuestion?.value || '').trim();
+                if (!q) { flashStatus('Please enter a question.', true); return; }
+                const apiKey = localStorage.getItem('OPENAI_API_KEY') || '';
+                if (!apiKey) { flashStatus('Add your OpenAI API key in Settings.', true); settingsModal.open(); return; }
+                const minBullets = Math.max(10, parseInt(minBulletsEl.value || '10', 10));
+                const style = styleSelect.value;
+                const detail = parseInt(detailRange.value, 10);
+                aiOutput.innerHTML = '';
+                setLoading(true);
+                aborter = new AbortController();
+                try {
+                    const points = await getAIInsights({ question: q, minBullets, style, detail, apiKey, signal: aborter.signal });
+                    renderPoints(points);
+                    flashStatus(`Generated ${points.length} bullet points.`);
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        flashStatus('Generation stopped.');
+                    } else {
+                        console.error(err);
+                        flashStatus('Failed to generate insights. Check console and API key.', true);
+                    }
+                } finally {
+                    setLoading(false);
+                    aborter = null;
+                }
+            });
+
+            stopBtn?.addEventListener('click', () => { aborter?.abort(); });
+            clearBtn?.addEventListener('click', () => { aiQuestion.value = ''; aiOutput.innerHTML = ''; flashStatus('Cleared.'); });
+            copyBtn?.addEventListener('click', async () => {
+                const text = pointsToMarkdown(collectPoints());
+                if (!text.trim()) { flashStatus('Nothing to copy.', true); return; }
+                await navigator.clipboard.writeText(text); flashStatus('Copied to clipboard.');
+            });
+            downloadBtn?.addEventListener('click', () => {
+                const points = collectPoints();
+                if (!points.length) { flashStatus('Nothing to download.', true); return; }
+                const blob = new Blob([JSON.stringify({ points }, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'ai_insights.json'; a.click(); URL.revokeObjectURL(url);
+            });
+            speakBtn?.addEventListener('click', () => {
+                const text = pointsToPlain(collectPoints());
+                if (!text.trim()) { flashStatus('Nothing to speak.', true); return; }
+                window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+            });
+
+            function setLoading(isLoading) {
+                askBtn.disabled = isLoading; stopBtn.disabled = !isLoading;
+                askBtn.classList.toggle('opacity-60', isLoading);
+                aiStatus.classList.toggle('hidden', !isLoading);
+                if (isLoading) aiStatus.textContent = 'Thinking… generating bullet points…';
+            }
+            function flashStatus(msg, isError = false) {
+                aiStatus.classList.remove('hidden');
+                aiStatus.textContent = msg;
+                aiStatus.classList.toggle('text-red-600', isError);
+                aiStatus.classList.toggle('dark:text-red-400', isError);
+                if (!isError) setTimeout(() => aiStatus.classList.add('hidden'), 2000);
+            }
+            function renderPoints(points) {
+                const list = document.createElement('ol');
+                list.className = 'list-decimal pl-6 space-y-3 text-slate-800 dark:text-slate-100';
+                points.forEach((p, idx) => {
+                    const li = document.createElement('li');
+                    const title = document.createElement('div'); title.className = 'font-semibold'; title.textContent = p.title || `Point ${idx+1}`;
+                    const body = document.createElement('div'); body.className = 'text-slate-600 dark:text-slate-300'; body.textContent = p.explanation || '';
+                    li.appendChild(title); if (p.explanation) li.appendChild(body); list.appendChild(li);
+                });
+                aiOutput.innerHTML = ''; aiOutput.appendChild(list); aiOutput.dataset.points = JSON.stringify(points);
+            }
+            function collectPoints() { try { return JSON.parse(aiOutput.dataset.points || '[]'); } catch { return []; } }
+            function pointsToMarkdown(points) { return points.map((p, i) => `- ${p.title || `Point ${i+1}`}\n  - ${p.explanation || ''}`).join('\n'); }
+            function pointsToPlain(points) { return points.map((p, i) => `${i+1}. ${p.title}\n${p.explanation}`).join('\n\n'); }
+
+            async function getAIInsights({ question, minBullets, style, detail, apiKey, signal }) {
+                const styleMap = { 'concise': 'concise but complete', 'balanced': 'balanced length', 'in-depth': 'deep, thorough' };
+                const sys = `You are an expert analyst of money, macroeconomics, and currencies. Produce clear, factual, organized guidance.`;
+                const userInstruction = `Task: Answer the user question as an ordered list of at least ${minBullets} bullet points. Each point must contain a short title and a well-explained 1-3 sentence explanation. Style should be ${styleMap[style] || 'balanced'}. Detail level: ${detail}/3. Return ONLY valid JSON with this exact shape:\n{ \"points\": [ { \"title\": string, \"explanation\": string } ] }\nDo not include any extra keys or prose.`;
+                const dataContext = `Note: If the question involves which currencies countries use, rely on general knowledge; this app also has a local directory of countries and currencies.`;
+                const body = {
+                    model: localStorage.getItem('OPENAI_MODEL') || 'gpt-4o-mini',
+                    messages: [
+                        { role: 'system', content: sys },
+                        { role: 'user', content: `${userInstruction}\n\nUser question: ${question}\n\n${dataContext}` }
+                    ],
+                    temperature: 0.6,
+                    response_format: { type: 'json_object' }
+                };
+                const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify(body), signal
+                });
+                if (!res.ok) { const t = await res.text(); throw new Error(`OpenAI error ${res.status}: ${t}`); }
+                const json = await res.json();
+                let content = json?.choices?.[0]?.message?.content || '';
+                let parsed; try { parsed = JSON.parse(content); } catch { parsed = { points: parseFallbackToPoints(content, minBullets) }; }
+                const points = Array.isArray(parsed.points) ? parsed.points : [];
+                while (points.length < minBullets) { points.push({ title: `Additional consideration ${points.length+1}`, explanation: 'Add more detail specific to the user context.' }); }
+                return points.slice(0, Math.max(minBullets, points.length));
+            }
+            function parseFallbackToPoints(text, minBullets) {
+                const lines = text.split(/\r?\n/).filter(Boolean); const bullets = [];
+                for (const ln of lines) { const m = ln.match(/^\s*(?:[-*]|\d+\.)\s+(.*)$/); if (m) bullets.push(m[1].trim()); }
+                const result = bullets.slice(0, Math.max(minBullets, bullets.length)).map((t, i) => ({ title: t.split(':')[0] || `Point ${i+1}`, explanation: t.includes(':') ? t.split(':').slice(1).join(':').trim() : '' }));
+                return result.length ? result : [{ title: 'Summary', explanation: text }];
+            }
+            function createSettingsModal() {
+                const container = document.createElement('div'); container.className = 'fixed inset-0 z-50 hidden';
+                container.innerHTML = `
+                  <div class=\"absolute inset-0 bg-slate-900/40 backdrop-blur-sm\"></div>
+                  <div class=\"absolute inset-0 flex items-center justify-center p-4\">
+                    <div class=\"w-full max-w-lg rounded-2xl border border-aurora-200/60 dark:border-white/10 bg-white/90 dark:bg-slate-900/60 shadow-glow p-6\">
+                      <h3 class=\"text-xl font-bold\">Settings</h3>
+                      <div class=\"mt-4 space-y-4\">
+                        <div>
+                          <label class=\"text-sm text-slate-600 dark:text-slate-300\">OpenAI API Key</label>
+                          <input id=\"openai-key\" type=\"password\" placeholder=\"sk-...\" class=\"mt-1 w-full rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-3 py-2\" />
+                          <p class=\"mt-1 text-xs text-slate-500 dark:text-slate-400\">Stored locally in your browser. Do not use on shared devices.</p>
+                        </div>
+                        <div>
+                          <label class=\"text-sm text-slate-600 dark:text-slate-300\">Model</label>
+                          <select id=\"openai-model\" class=\"mt-1 w-full rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-3 py-2\">
+                            <option value=\"gpt-4o-mini\">gpt-4o-mini (default)</option>
+                            <option value=\"gpt-4o\">gpt-4o</option>
+                            <option value=\"gpt-4.1-mini\">gpt-4.1-mini</option>
+                            <option value=\"gpt-3.5-turbo\">gpt-3.5-turbo</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class=\"mt-6 flex justify-end gap-3\">
+                        <button id=\"settingsCancel\" class=\"rounded-lg px-4 py-2 border border-aurora-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/40\">Close</button>
+                        <button id=\"settingsSave\" class=\"rounded-lg px-4 py-2 text-white bg-gradient-to-r from-aurora-600 to-blossom-600 shadow-glow\">Save</button>
+                      </div>
+                    </div>
+                  </div>`;
+                const keyEl = () => container.querySelector('#openai-key');
+                const modelEl = () => container.querySelector('#openai-model');
+                const open = () => { keyEl().value = localStorage.getItem('OPENAI_API_KEY') || ''; modelEl().value = localStorage.getItem('OPENAI_MODEL') || 'gpt-4o-mini'; container.classList.remove('hidden'); };
+                const close = () => container.classList.add('hidden');
+                container.addEventListener('click', (e) => { if (e.target === container) close(); });
+                container.querySelector('#settingsCancel').addEventListener('click', close);
+                container.querySelector('#settingsSave').addEventListener('click', () => {
+                    localStorage.setItem('OPENAI_API_KEY', keyEl().value.trim());
+                    localStorage.setItem('OPENAI_MODEL', modelEl().value);
+                    close();
+                });
+                return { container, open, close };
+            }
         });
     </script>
 </body>
 </html>
-

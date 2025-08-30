@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Currency Explorer • AI Insights</title>
+  <!-- Tailwind (config first) -->
+  <script src="js/tw-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/theme.css" />
+</head>
+<body class="antialiased bg-gradient-to-br from-aurora-50 via-white to-blossom-50 dark:from-slate-950 dark:via-slate-900 dark:to-aurora-900 text-slate-800 dark:text-slate-100">
+  <div class="container mx-auto px-4 py-8 md:py-12">
+    <header class="text-center mb-10">
+      <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/70 dark:bg-white/10 border border-aurora-200/60 dark:border-white/10 shadow-glow">
+        <button id="themeToggle" class="text-sm font-semibold px-3 py-1 rounded-full bg-aurora-100 text-aurora-800 dark:bg-aurora-600/40 dark:text-aurora-100 hover:scale-[1.03] transition">Toggle Theme</button>
+        <button id="settingsOpen" class="text-sm font-semibold px-3 py-1 rounded-full bg-blossom-100 text-blossom-800 dark:bg-blossom-600/40 dark:text-blossom-100 hover:scale-[1.03] transition">Settings</button>
+      </div>
+      <h1 class="mt-4 text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-aurora-600 via-blossom-600 to-mint-500">World Currency Explorer</h1>
+      <p class="mt-2 text-lg text-slate-600 dark:text-slate-300">An interactive guide to global currencies with AI insights.</p>
+    </header>
+
+    <!-- AI Insights Section -->
+    <section id="ai-section" class="mb-10">
+      <div class="relative overflow-hidden rounded-2xl border border-aurora-200/60 dark:border-white/10 bg-white/70 dark:bg-white/5 shadow-glow">
+        <div class="absolute inset-0 bg-gradient-to-br from-aurora-100/40 via-blossom-100/20 to-mint-100/30 dark:from-aurora-600/20 dark:via-blossom-600/10 dark:to-mint-600/10 pointer-events-none"></div>
+        <div class="relative p-6 md:p-8">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h2 class="text-2xl md:text-3xl font-bold">AI Currency Insights</h2>
+              <p class="mt-1 text-slate-600 dark:text-slate-300">Ask any question and get at least 10 clear, well-explained bullet points tailored to your query.</p>
+            </div>
+            <div class="mt-1 flex items-center gap-2">
+              <span class="text-xs text-slate-500 dark:text-slate-400">Uses server proxy or your API key</span>
+            </div>
+          </div>
+          <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2">
+              <label for="ai-question" class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Your Question</label>
+              <textarea id="ai-question" rows="4" placeholder="e.g., Compare pros/cons of adopting the Euro for a small economy; Explain exchange rate volatility drivers; How is USD used outside the U.S.?" class="w-full rounded-xl border-2 border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 backdrop-blur px-4 py-3 focus:outline-none focus:ring-4 focus:ring-aurora-300/50 dark:focus:ring-aurora-500/40"></textarea>
+              <div class="mt-3 flex flex-wrap items-center gap-3">
+                <label class="text-sm text-slate-600 dark:text-slate-300">Min bullets</label>
+                <input id="min-bullets" type="number" min="10" value="10" class="w-20 rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-2 py-1">
+                <label class="text-sm text-slate-600 dark:text-slate-300">Detail</label>
+                <input id="detail-range" type="range" min="1" max="3" value="2" class="accent-aurora-600">
+                <select id="style-select" class="rounded-lg border border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 px-2 py-1">
+                  <option value="concise" selected>Concise</option>
+                  <option value="balanced">Balanced</option>
+                  <option value="in-depth">In-depth</option>
+                </select>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-3">
+                <button id="ask-btn" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-aurora-600 to-blossom-600 text-white font-semibold px-4 py-2 shadow-glow hover:opacity-95 active:scale-[0.99] transition">
+                  <span>Generate Insights</span>
+                </button>
+                <button id="stop-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Stop</button>
+                <button id="clear-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Clear</button>
+                <button id="copy-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Copy</button>
+                <button id="download-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Download</button>
+                <button id="speak-btn" class="rounded-xl bg-white/80 dark:bg-slate-900/40 border border-aurora-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-medium px-4 py-2 hover:bg-white dark:hover:bg-slate-900 transition">Speak</button>
+                <button id="demo-btn" class="rounded-xl bg-mint-600 text-white font-semibold px-4 py-2 hover:bg-mint-500 transition">Demo</button>
+              </div>
+            </div>
+            <div class="lg:col-span-1">
+              <div class="rounded-xl border border-aurora-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4">
+                <h3 class="font-semibold">Tips</h3>
+                <ul class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300 list-disc list-inside">
+                  <li>Ask “why” and “how” for deeper factors.</li>
+                  <li>Use “compare X vs Y” for trade-offs.</li>
+                  <li>Set detail to “In-depth” for richer points.</li>
+                  <li>Minimum bullets are enforced (≥10).</li>
+                </ul>
+                <div class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                  Use the built-in proxy server for security; client-side API keys are stored locally only for testing.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="ai-status" class="mt-4 text-sm text-slate-600 dark:text-slate-300 hidden"></div>
+          <div id="ai-output" class="mt-6 rounded-xl border border-aurora-200/70 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 p-4"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-10">
+      <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+        <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Total Countries & Territories</h3>
+        <p id="total-countries" class="text-4xl font-extrabold text-aurora-700 dark:text-aurora-300 mt-2">0</p>
+      </div>
+      <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+        <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Unique Currencies</h3>
+        <p id="unique-currencies" class="text-4xl font-extrabold text-blossom-700 dark:text-blossom-300 mt-2">0</p>
+      </div>
+      <div class="bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow col-span-1 sm:col-span-2 lg:col-span-1">
+        <h3 class="text-slate-500 dark:text-slate-400 font-semibold">Most Used Currency</h3>
+        <p id="most-used-currency" class="text-4xl font-extrabold text-mint-700 dark:text-mint-300 mt-2">-</p>
+      </div>
+    </section>
+
+    <section id="currency-chart-section" class="mb-12 bg-white/70 dark:bg-white/5 p-6 rounded-xl border border-aurora-200/60 dark:border-white/10 shadow-glow">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1 text-center">Top 10 Most Common Currencies</h2>
+      <p class="text-slate-600 dark:text-slate-300 mb-6 text-center">This chart shows which currencies are officially used by the most countries and territories.</p>
+      <div class="chart-container">
+        <canvas id="currencyChart"></canvas>
+      </div>
+    </section>
+
+    <section id="interactive-list">
+      <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 text-center">Currency Directory</h2>
+      <div class="w-full max-w-2xl mx-auto mb-8">
+        <p class="text-slate-600 dark:text-slate-300 mb-4 text-center">Use the search box below to filter the list by country, currency name, or currency code. The list updates in real-time.</p>
+        <input type="search" id="search-box" placeholder="Search by Country, Currency, or Code..." class="w-full px-5 py-3 rounded-full border-2 border-aurora-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 backdrop-blur focus:ring-4 focus:ring-aurora-300/50 dark:focus:ring-aurora-500/40 outline-none transition">
+      </div>
+      <div id="currency-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"></div>
+    </section>
+  </div>
+
+  <!-- App JS -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/ai.js"></script>
+</body>
+</html>
+
